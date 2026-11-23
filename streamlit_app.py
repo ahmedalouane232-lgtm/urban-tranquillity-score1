@@ -28,7 +28,6 @@ SOLUTIONS = [
 
 st.title('Urban Tranquillity Score')
 st.caption('Urban development assessment: 5 themes, 15 sub-themes and 2 targeted improvement solutions')
-st.info('Methodology: Scores, weights and projected gains are project assumptions. Cost benchmarks are sourced from published French references, but are NOT supplier quotations or guaranteed site-specific prices. Smart controls and sensors require a separate quote.')
 
 st.header('1. Assess themes and sub-themes')
 st.write('Set each sub-theme score from 0 (not addressed) to 4 (exemplary). Adjust theme weights as needed.')
@@ -65,7 +64,6 @@ st.subheader('Priority weaknesses')
 st.dataframe(weak, use_container_width=True, hide_index=True)
 
 st.header('3. Two targeted solutions')
-st.write('Only two improvement solutions are included. They address Pedestrian Safety and Dark Areas. Other low-scoring sub-themes are identified but do not receive an invented recommendation.')
 selected = {}
 quantities = {}
 for idx, sol in enumerate(SOLUTIONS):
@@ -87,10 +85,9 @@ for idx, sol in enumerate(SOLUTIONS):
         low, high = unit_low*qty, unit_high*qty
         st.write(f'**Estimated cost for {qty} unit(s):** EUR {low:,.0f} to EUR {high:,.0f}')
         if idx == 0:
-            st.markdown('**Reference:** [Plateforme des coûts : traffic calming measures](https://reseau-velo-marche.org/plateforme-des-couts/amenagements/dispositifs-de-moderation-de-trafic/) : EUR 10,000–30,000 per raised crossing/plateau traversant (2025 benchmark). This is NOT the cost of simple painted markings.')
+            st.markdown('**Reference:** [Plateforme des coûts : traffic calming measures](https://reseau-velo-marche.org/plateforme-des-couts/amenagements/dispositifs-de-moderation-de-trafic/) : EUR 10,000–30,000 per raised crossing/plateau traversant (2025 benchmark).')
         else:
-            st.markdown('**References:** [Cerema : public lighting renovation](https://www.cerema.fr/fr/actualites/eclairage-public-poste-cle-reduire-consommations-energie) : around EUR 500 per luminaire for a simple LED renovation; [French IGF report, annexes](https://www.lagazettedescommunes.com/telechargements/2024/04/rapport-igf-sur-les-investissementsdescollectivitesterritoriales-gdc-annexes3-3.pdf) : around EUR 1,000 excl. VAT per light point for a broader renovation scope. **These are different scopes, not a verified price range for smart lighting.**')
-            st.warning('Sensors, remote management, additional cabling and site-specific civil works are NOT priced in this LED benchmark. Obtain a separate quotation if you include these options.')
+            st.markdown('**References:** [Cerema : public lighting renovation](https://www.cerema.fr/fr/actualites/eclairage-public-poste-cle-reduire-consommations-energie) : around EUR 500 per luminaire for a simple LED renovation; [French IGF report, annexes](https://www.lagazettedescommunes.com/telechargements/2024/04/rapport-igf-sur-les-investissementsdescollectivitesterritoriales-gdc-annexes3-3.pdf) : around EUR 1,000 excl. VAT per light point for a broader renovation scope.')
         if idx == 1:
             st.markdown('#### Energy and financial savings simulator')
             st.caption('Compare existing lighting with a proposed efficient LED and dimming system. Editable assumptions, not guaranteed results.')
@@ -117,10 +114,8 @@ for idx, sol in enumerate(SOLUTIONS):
             st.write(f'**Proposed annual electricity cost:** EUR {proposed_kwh * tariff:,.0f}')
             if annual_total_savings > 0:
                 st.write(f'**Simple payback based on full illustrative installation cost:** {low / annual_total_savings:.1f} to {high / annual_total_savings:.1f} years')
-                st.caption('Payback uses total installation cost, not incremental upgrade cost. It excludes financing, replacement cycles, future tariff changes and other operating expenses.')
             else:
                 st.warning('These assumptions do not generate positive annual savings. Adjust the lighting design or compare alternatives.')
-            st.caption('Dimming is only appropriate if required lighting levels and safety are maintained. Check local rules and perform a site-specific lighting study.')
         selected[idx] = chosen
         quantities[idx] = qty
         sol.setdefault('editable_costs', {})['low'] = unit_low
@@ -144,7 +139,6 @@ x,y,z = st.columns(3)
 x.metric('Current score', f'{overall:.1f}/100')
 y.metric('Scenario score', f'{new_overall:.1f}/100', delta=f'{new_overall-overall:+.1f} points')
 z.metric('Estimated budget', f'€{low_total:,.0f} - €{high_total:,.0f}')
-st.caption('Cost benchmarks are drawn from French published references but do not constitute actual project quotations. Different scopes may not be directly comparable. Studies, permits, VAT, smart sensors, remote controls and unforeseen works may be excluded.')
 
 def build_word_report():
     """Create a complete editable Word summary of the current assessment."""
