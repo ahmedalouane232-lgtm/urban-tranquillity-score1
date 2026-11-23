@@ -1,112 +1,151 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 
-st.set_page_config(page_title="Urban Tranquillity Score", page_icon="🏙️", layout="wide")
+st.set_page_config(page_title='Urban Tranquillity Score', page_icon='🏙️', layout='wide')
 
-CRITERIA = [
-    {"name": "Visibility and wayfinding", "weight": 15, "action": "Improve signs and remove visual obstructions", "low": 300, "high": 1200, "unit": "fixed project"},
-    {"name": "Lighting and night-time safety", "weight": 15, "action": "Audit lighting and improve poorly lit areas", "low": 800, "high": 3000, "unit": "lighting point"},
-    {"name": "Mobility and pedestrian routes", "weight": 20, "action": "Improve crossings and pedestrian route continuity", "low": 70, "high": 220, "unit": "linear metre"},
-    {"name": "Accessibility and inclusion", "weight": 10, "action": "Remove priority accessibility barriers", "low": 500, "high": 2500, "unit": "intervention"},
-    {"name": "Comfort and green spaces", "weight": 15, "action": "Provide shade and improve planted areas", "low": 45, "high": 160, "unit": "square metre"},
-    {"name": "Maintenance and management", "weight": 15, "action": "Establish a maintenance and monitoring plan", "low": 400, "high": 1500, "unit": "fixed project"},
-    {"name": "Community engagement and monitoring", "weight": 10, "action": "Consult residents and collect feedback", "low": 300, "high": 1300, "unit": "workshop"},
+THEMES = {
+    'Mobility and Transport': {'weight':25, 'subs':['Pedestrian Safety','Cycling Infrastructure','Traffic Management']},
+    'Lighting and Night Safety': {'weight':20, 'subs':['Street Lighting','Dark Areas','Night Accessibility']},
+    'Environmental Comfort': {'weight':20, 'subs':['Urban Heat','Noise Pollution','Green Spaces']},
+    'Public Space Management': {'weight':15, 'subs':['Cleanliness','Infrastructure Maintenance','Public Space Organization']},
+    'Building Safety and Accessibility': {'weight':20, 'subs':['Building Access','Shared Spaces','Universal Accessibility']},
+}
+SOLUTIONS = [
+    {'name':'Safer Pedestrian Crossings', 'theme':'Mobility and Transport', 'sub':'Pedestrian Safety',
+     'problem':'Poorly visible crossings and vehicle speed can create conflicts between road users.',
+     'action':'Audit pedestrian routes and vehicle speeds. Where technically and legally suitable, install a raised crossing, improve markings and remove visibility obstructions. Verify drainage and accessibility.',
+     'unit':'crossing', 'low':6000, 'high':18000, 'impact':'Potentially improves pedestrian safety and crossing legibility.',
+     'measure':'Vehicle speeds, crossing visibility, accessibility and user feedback.', 'difficulty':'Medium', 'timeline':'Planning and construction required'},
+    {'name':'Energy-Efficient Smart Lighting', 'theme':'Lighting and Night Safety', 'sub':'Dark Areas',
+     'problem':'Poorly lit routes can feel unsafe, while outdated lighting may waste electricity and money.',
+     'action':'First audit lighting levels and electricity consumption. Replace inefficient fixtures with correctly sized LEDs. Use scheduled dimming during low-traffic periods and optional occupancy sensors where appropriate. Preserve safe visibility, accessibility and legal lighting requirements. Limit glare and light pollution, and maintain the equipment.',
+     'unit':'light point', 'low':1500, 'high':5000, 'impact':'Aims to maintain or improve night-time visibility while reducing electricity consumption and operating costs. Actual savings depend on the baseline, dimming strategy and electricity tariff.',
+     'measure':'Lighting adequacy, annual kWh consumed, annual electricity spend, maintenance costs, user feedback and simple payback period.', 'difficulty':'Medium', 'timeline':'Survey, electrical work and commissioning required'},
 ]
 
-st.title("🏙️ Urban Tranquillity Score")
-st.caption("Urban development assessment prototype. Scores, weights and costs are illustrative, not official standards.")
+st.title('Urban Tranquillity Score')
+st.caption('Urban development assessment: 5 themes, 15 sub-themes and 2 targeted improvement solutions')
+st.info('Methodology note: Scores, weights, costs and simulated gains are illustrative project assumptions, not official Nexity standards or supplier quotations.')
 
 with st.sidebar:
-    st.header("Project details")
-    project = st.text_input("Project name", "Pilot neighbourhood")
-    area = st.number_input("Site area (m²)", min_value=100, value=5000, step=100)
-    phase = st.selectbox("Project stage", ["Planning", "Construction", "Completed / in operation"])
-    st.info("Cost estimates are examples. Confirm unit prices and quantities with local quotations.")
-    if st.button("Reset scores and weights"):
-        for i, criterion in enumerate(CRITERIA):
-            st.session_state[f"rating_{i}"] = 2
-            st.session_state[f"weight_{i}"] = criterion["weight"]
+    st.header('Project information')
+    project = st.text_input('Project name', 'Urban development project')
+    area = st.number_input('Site area (m²)', min_value=1, value=5000, step=100)
+    st.caption('Site area is contextual information. Solution estimates use quantities of crossings or light points, not total site area.')
+    if st.button('Reset all scores and weights'):
+        for theme, cfg in THEMES.items():
+            st.session_state[f'weight_{theme}'] = cfg['weight']
+            for sub in cfg['subs']:
+                st.session_state[f'score_{theme}_{sub}'] = 2
         st.rerun()
 
-st.subheader("1. Configure assessment criteria")
-st.write("Set a rating from 0 (not addressed) to 4 (excellent). Adjust the importance of each criterion using its weight.")
-ratings, weights = {}, {}
-for i, criterion in enumerate(CRITERIA):
-    with st.container(border=True):
-        st.markdown(f"**{criterion['name']}**")
-        left, right = st.columns([3, 2])
-        ratings[i] = left.slider("Rating (0 to 4)", 0, 4, 2, key=f"rating_{i}")
-        weights[i] = right.number_input("Weight", min_value=0, max_value=100, value=criterion["weight"], step=1, key=f"weight_{i}")
+st.header('1. Assess themes and sub-themes')
+st.write('Set each sub-theme score from 0 (not addressed) to 4 (exemplary). Adjust theme weights as needed.')
+rows = []
+weights = {}
+for theme, cfg in THEMES.items():
+    with st.expander(theme, expanded=False):
+        weights[theme] = st.number_input('Theme weight (%)', min_value=0, max_value=100, value=cfg['weight'], step=5, key=f'weight_{theme}')
+        for sub in cfg['subs']:
+            score = st.slider(sub, 0, 4, 2, key=f'score_{theme}_{sub}')
+            rows.append({'Theme':theme, 'Sub-theme':sub, 'Score':score})
 
+frame = pd.DataFrame(rows)
 weight_total = sum(weights.values())
 if weight_total == 0:
-    st.error("At least one criterion must have a weight greater than zero.")
+    st.error('At least one theme weight must be greater than zero.')
     st.stop()
-
 if weight_total != 100:
-    st.info(f"Your weights add up to {weight_total}. They are automatically normalised to 100% for scoring.")
+    st.warning(f'Theme weights total {weight_total}%. They are automatically normalized to 100% for scoring.')
 
-normalised = {i: weights[i] / weight_total * 100 for i in weights}
-score = sum(ratings[i] / 4 * normalised[i] for i in ratings)
+theme_scores = {theme: frame.loc[frame['Theme'] == theme, 'Score'].mean() / 4 * 100 for theme in THEMES}
+overall = sum(theme_scores[theme] * weights[theme] for theme in THEMES) / weight_total
 
-st.subheader("2. Assessment results")
-a, b, c = st.columns(3)
-a.metric("Overall score", f"{score:.1f} / 100")
-b.metric("Site area", f"{area:,} m²")
-c.metric("Criteria to improve", sum(value < 3 for value in ratings.values()))
-st.progress(min(1.0, score / 100))
-
-chart = pd.DataFrame({"Criterion": [c["name"] for c in CRITERIA], "Rating": [ratings[i] for i in range(len(CRITERIA))]}).set_index("Criterion")
+st.header('2. Results')
+a,b,c = st.columns(3)
+a.metric('Overall score', f'{overall:.1f}/100')
+b.metric('Themes evaluated', '5')
+c.metric('Sub-themes evaluated', '15')
+st.progress(min(max(overall/100,0.0),1.0))
+chart = pd.DataFrame({'Theme':list(theme_scores), 'Score':list(theme_scores.values())}).set_index('Theme')
 st.bar_chart(chart)
+weak = frame.sort_values(['Score','Theme']).head(5)
+st.subheader('Priority weaknesses')
+st.dataframe(weak, use_container_width=True, hide_index=True)
 
-st.subheader("3. Recommendations and quick wins")
-recommendations = []
-for i, criterion in enumerate(CRITERIA):
-    if ratings[i] >= 3:
-        continue
-    gain = (4 - ratings[i]) / 4 * normalised[i]
-    recommendations.append({
-        "Criterion": criterion["name"], "Suggested action": criterion["action"],
-        "Priority": "High" if ratings[i] <= 1 else "Medium",
-        "Maximum potential gain (points)": round(gain, 1),
-        "Unit cost low (EUR)": criterion["low"], "Unit cost high (EUR)": criterion["high"],
-        "Unit": criterion["unit"], "index": i,
-    })
+st.header('3. Two targeted solutions')
+st.write('Only two improvement solutions are included. They address Pedestrian Safety and Dark Areas. Other low-scoring sub-themes are identified but do not receive an invented recommendation.')
+selected = {}
+quantities = {}
+for idx, sol in enumerate(SOLUTIONS):
+    with st.expander(f'Solution {idx+1}: {sol["name"]}', expanded=True):
+        st.write(f'**Theme:** {sol["theme"]}  |  **Sub-theme:** {sol["sub"]}')
+        st.write('**Problem:** ' + sol['problem'])
+        st.write('**Implementation:** ' + sol['action'])
+        st.write('**Expected benefit:** ' + sol['impact'])
+        st.write('**Monitoring indicators:** ' + sol['measure'])
+        st.write('**Feasibility:** ' + sol['difficulty'] + '. ' + sol['timeline'])
+        chosen = st.checkbox('Include this solution in the scenario', value=True, key=f'choose_{idx}')
+        qty = st.number_input(f'Number of {sol["unit"]}s', min_value=1, max_value=10000, value=2 if idx==0 else 8, key=f'qty_{idx}')
+        low, high = sol['low']*qty, sol['high']*qty
+        st.write(f'**Illustrative cost range:** €{low:,.0f} to €{high:,.0f} (excluding site-specific constraints)')
+        if idx == 1:
+            st.markdown('#### Energy and financial savings simulator')
+            st.caption('Compare existing lighting with a proposed efficient LED and dimming system. Editable assumptions, not guaranteed results.')
+            ec1, ec2 = st.columns(2)
+            with ec1:
+                old_watts = st.number_input('Existing power per light (W)', min_value=0.0, value=120.0, step=10.0, key='old_watts')
+                new_watts = st.number_input('Proposed LED power per light (W)', min_value=0.0, value=55.0, step=5.0, key='new_watts')
+                hours = st.number_input('Lighting hours per night', min_value=0.0, max_value=24.0, value=11.0, step=0.5, key='hours')
+            with ec2:
+                dim_factor = st.slider('Average LED power after dimming (%)', min_value=10, max_value=100, value=75, step=5, key='dim_factor')
+                tariff = st.number_input('Electricity tariff (EUR/kWh)', min_value=0.0, value=0.22, step=0.01, format='%.2f', key='tariff')
+                extra_maintenance = st.number_input('Annual maintenance savings (EUR, optional)', min_value=0.0, value=0.0, step=50.0, key='maintenance_savings')
+            baseline_kwh = qty * old_watts * hours * 365 / 1000
+            proposed_kwh = qty * new_watts * (dim_factor / 100) * hours * 365 / 1000
+            saved_kwh = baseline_kwh - proposed_kwh
+            annual_electric_savings = saved_kwh * tariff
+            annual_total_savings = annual_electric_savings + extra_maintenance
+            energy_saving_pct = (saved_kwh / baseline_kwh * 100) if baseline_kwh > 0 else 0
+            m1, m2, m3 = st.columns(3)
+            m1.metric('Annual energy difference', f'{saved_kwh:,.0f} kWh')
+            m2.metric('Annual electricity savings', f'EUR {annual_electric_savings:,.0f}')
+            m3.metric('Energy reduction', f'{energy_saving_pct:.1f}%')
+            st.write(f'**Current annual electricity cost:** EUR {baseline_kwh * tariff:,.0f}')
+            st.write(f'**Proposed annual electricity cost:** EUR {proposed_kwh * tariff:,.0f}')
+            if annual_total_savings > 0:
+                st.write(f'**Simple payback based on full illustrative installation cost:** {low / annual_total_savings:.1f} to {high / annual_total_savings:.1f} years')
+                st.caption('Payback uses total installation cost, not incremental upgrade cost. It excludes financing, replacement cycles, future tariff changes and other operating expenses.')
+            else:
+                st.warning('These assumptions do not generate positive annual savings. Adjust the lighting design or compare alternatives.')
+            st.caption('Dimming is only appropriate if required lighting levels and safety are maintained. Check local rules and perform a site-specific lighting study.')
+        selected[idx] = chosen
+        quantities[idx] = qty
 
-estimate_rows = []
-if recommendations:
-    rec_df = pd.DataFrame(recommendations).sort_values("Maximum potential gain (points)", ascending=False)
-    st.dataframe(rec_df.drop(columns=["index"]), use_container_width=True, hide_index=True)
-    st.caption("Potential gains assume a rating of 4. They are not guaranteed results of the suggested actions.")
-    st.subheader("4. Indicative cost estimate")
-    st.write("Enter the actual quantity for each action. Site area is contextual information, not a universal cost multiplier.")
-    for _, item in rec_df.iterrows():
-        quantity = st.number_input(
-            f"Quantity for {item['Criterion']} ({item['Unit']})", min_value=0.0,
-            value=1.0, step=1.0, key=f"quantity_{int(item['index'])}",
-        )
-        estimate_rows.append({
-            "Action": item["Suggested action"], "Quantity": quantity,
-            "Minimum cost (EUR)": round(quantity * item["Unit cost low (EUR)"]),
-            "Maximum cost (EUR)": round(quantity * item["Unit cost high (EUR)"]),
-        })
-    estimates = pd.DataFrame(estimate_rows)
-    st.dataframe(estimates, use_container_width=True, hide_index=True)
-    st.metric("Estimated total range", f"€{estimates['Minimum cost (EUR)'].sum():,.0f} to €{estimates['Maximum cost (EUR)'].sum():,.0f}")
-else:
-    st.success("Every criterion has a rating of 3 or 4. Continue monitoring and documenting performance.")
+st.header('4. Improvement scenario')
+st.caption('Choose a hypothetical score after implementation for each selected solution. Gains are not guaranteed and must be validated after works.')
+new_frame = frame.copy()
+low_total, high_total = 0,0
+for idx, sol in enumerate(SOLUTIONS):
+    if selected[idx]:
+        mask = (new_frame['Theme']==sol['theme']) & (new_frame['Sub-theme']==sol['sub'])
+        old_score = int(new_frame.loc[mask,'Score'].iloc[0])
+        target = st.slider(f'Expected score after: {sol["name"]}', min_value=old_score, max_value=4, value=min(4,old_score+1), key=f'target_{idx}')
+        new_frame.loc[mask,'Score'] = target
+        low_total += sol['low']*quantities[idx]
+        high_total += sol['high']*quantities[idx]
+new_theme_scores = {theme: new_frame.loc[new_frame['Theme']==theme,'Score'].mean()/4*100 for theme in THEMES}
+new_overall = sum(new_theme_scores[t]*weights[t] for t in THEMES)/weight_total
+x,y,z = st.columns(3)
+x.metric('Current score', f'{overall:.1f}/100')
+y.metric('Scenario score', f'{new_overall:.1f}/100', delta=f'{new_overall-overall:+.1f} points')
+z.metric('Estimated budget', f'€{low_total:,.0f} - €{high_total:,.0f}')
+st.caption('Budget assumptions: illustrative unit ranges, not market-verified prices. Excludes design studies, permits, VAT, utilities, and unforeseen conditions where applicable.')
 
-st.subheader("5. Export assessment")
-report = pd.DataFrame([
-    {"Project": project, "Project stage": phase, "Site area (m²)": area,
-     "Criterion": criterion["name"], "Weight entered": weights[i],
-     "Normalised weight (%)": round(normalised[i], 2), "Rating (0 to 4)": ratings[i],
-     "Score contribution": round(ratings[i] / 4 * normalised[i], 2)}
-    for i, criterion in enumerate(CRITERIA)
-])
-st.download_button("Download assessment CSV", data=report.to_csv(index=False).encode("utf-8-sig"),
-                   file_name="urban_tranquillity_assessment.csv", mime="text/csv")
-if estimate_rows:
-    st.download_button("Download cost estimates CSV", data=pd.DataFrame(estimate_rows).to_csv(index=False).encode("utf-8-sig"),
-                       file_name="urban_tranquillity_costs.csv", mime="text/csv")
-st.caption("Prototype only. Data is not saved to a server. Validate assessment criteria and costs before professional use.")
+report = new_frame.copy()
+report['Theme weight (%)'] = report['Theme'].map(weights)
+report['Project'] = project
+report['Site area (m²)'] = area
+report['Current score'] = frame['Score']
+report['Scenario score'] = new_frame['Score']
+st.download_button('Download assessment CSV', data=report.to_csv(index=False).encode('utf-8-sig'), file_name='urban_tranquillity_assessment.csv', mime='text/csv')
