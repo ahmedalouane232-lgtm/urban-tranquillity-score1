@@ -1,12 +1,13 @@
 # Urban Tranquillity Score
 
-English Streamlit web application for 5 urban tranquillity themes, 15 sub-themes and exactly 2 improvement solutions.
+English Streamlit assessment for 5 themes, 15 sub-themes and 2 detailed solutions.
 
-Solution 2, Energy-Efficient Smart Lighting, includes editable electricity consumption, tariff, dimming, annual savings and payback assumptions. Cost figures are illustrative, not quotations.
-
-## Render deployment
-
-Push `streamlit_app.py`, `requirements.txt`, `render.yaml` and `README.md` to the root of a GitHub repository. In Render, select New > Blueprint and connect the repository.
+- Editable theme weights and sub-theme scores
+- Current and projected score out of 100
+- Two solutions: safer pedestrian crossings and energy-efficient smart lighting
+- Editable cost, electricity and energy-saving assumptions
+- **One Word (.docx) export** summarizing all scores, solutions, costs and savings
+- Project information sidebar and CSV export removed
 
 ## Run locally
 
@@ -14,3 +15,9 @@ Push `streamlit_app.py`, `requirements.txt`, `render.yaml` and `README.md` to th
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
+
+## Render
+
+Upload all four files to the root of a GitHub repository and deploy using `render.yaml`.
+
+All monetary figures and projected gains are illustrative, not quotes or verified outcomes.
