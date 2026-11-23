@@ -17,18 +17,18 @@ SOLUTIONS = [
     {'name':'Safer Pedestrian Crossings', 'theme':'Mobility and Transport', 'sub':'Pedestrian Safety',
      'problem':'Poorly visible crossings and vehicle speed can create conflicts between road users.',
      'action':'Audit pedestrian routes and vehicle speeds. Where technically and legally suitable, install a raised crossing, improve markings and remove visibility obstructions. Verify drainage and accessibility.',
-     'unit':'crossing', 'low':6000, 'high':18000, 'impact':'Potentially improves pedestrian safety and crossing legibility.',
+     'unit':'raised crossing', 'low':10000, 'high':30000, 'impact':'Potentially improves pedestrian safety and crossing legibility.',
      'measure':'Vehicle speeds, crossing visibility, accessibility and user feedback.', 'difficulty':'Medium', 'timeline':'Planning and construction required'},
     {'name':'Energy-Efficient Smart Lighting', 'theme':'Lighting and Night Safety', 'sub':'Dark Areas',
      'problem':'Poorly lit routes can feel unsafe, while outdated lighting may waste electricity and money.',
      'action':'First audit lighting levels and electricity consumption. Replace inefficient fixtures with correctly sized LEDs. Use scheduled dimming during low-traffic periods and optional occupancy sensors where appropriate. Preserve safe visibility, accessibility and legal lighting requirements. Limit glare and light pollution, and maintain the equipment.',
-     'unit':'light point', 'low':1500, 'high':5000, 'impact':'Aims to maintain or improve night-time visibility while reducing electricity consumption and operating costs. Actual savings depend on the baseline, dimming strategy and electricity tariff.',
+     'unit':'LED light point', 'low':500, 'high':1000, 'impact':'Aims to maintain or improve night-time visibility while reducing electricity consumption and operating costs. Actual savings depend on the baseline, dimming strategy and electricity tariff.',
      'measure':'Lighting adequacy, annual kWh consumed, annual electricity spend, maintenance costs, user feedback and simple payback period.', 'difficulty':'Medium', 'timeline':'Survey, electrical work and commissioning required'},
 ]
 
 st.title('Urban Tranquillity Score')
 st.caption('Urban development assessment: 5 themes, 15 sub-themes and 2 targeted improvement solutions')
-st.info('Methodology note: Scores, weights, costs and simulated gains are illustrative project assumptions, not official Nexity standards or supplier quotations.')
+st.info('Methodology: Scores, weights and projected gains are project assumptions. Cost benchmarks are sourced from published French references, but are NOT supplier quotations or guaranteed site-specific prices. Smart controls and sensors require a separate quote.')
 
 st.header('1. Assess themes and sub-themes')
 st.write('Set each sub-theme score from 0 (not addressed) to 4 (exemplary). Adjust theme weights as needed.')
@@ -78,8 +78,19 @@ for idx, sol in enumerate(SOLUTIONS):
         st.write('**Feasibility:** ' + sol['difficulty'] + '. ' + sol['timeline'])
         chosen = st.checkbox('Include this solution in the scenario', value=True, key=f'choose_{idx}')
         qty = st.number_input(f'Number of {sol["unit"]}s', min_value=1, max_value=10000, value=2 if idx==0 else 8, key=f'qty_{idx}')
-        low, high = sol['low']*qty, sol['high']*qty
-        st.write(f'**Illustrative cost range:** €{low:,.0f} to €{high:,.0f} (excluding site-specific constraints)')
+        st.caption('Published French cost benchmark; scope and local conditions must be checked. Not a contractor quote.')
+        unit_low = st.number_input('Lower unit-cost benchmark (EUR)', min_value=0, value=sol['low'], step=100, key=f'low_{idx}')
+        unit_high = st.number_input('Upper unit-cost benchmark (EUR)', min_value=0, value=sol['high'], step=100, key=f'high_{idx}')
+        if unit_high < unit_low:
+            st.error('Upper unit cost must be greater than or equal to lower unit cost.')
+            st.stop()
+        low, high = unit_low*qty, unit_high*qty
+        st.write(f'**Estimated cost for {qty} unit(s):** EUR {low:,.0f} to EUR {high:,.0f}')
+        if idx == 0:
+            st.markdown('**Reference:** [Plateforme des coûts : traffic calming measures](https://reseau-velo-marche.org/plateforme-des-couts/amenagements/dispositifs-de-moderation-de-trafic/) : EUR 10,000–30,000 per raised crossing/plateau traversant (2025 benchmark). This is NOT the cost of simple painted markings.')
+        else:
+            st.markdown('**References:** [Cerema : public lighting renovation](https://www.cerema.fr/fr/actualites/eclairage-public-poste-cle-reduire-consommations-energie) : around EUR 500 per luminaire for a simple LED renovation; [French IGF report, annexes](https://www.lagazettedescommunes.com/telechargements/2024/04/rapport-igf-sur-les-investissementsdescollectivitesterritoriales-gdc-annexes3-3.pdf) : around EUR 1,000 excl. VAT per light point for a broader renovation scope. **These are different scopes, not a verified price range for smart lighting.**')
+            st.warning('Sensors, remote management, additional cabling and site-specific civil works are NOT priced in this LED benchmark. Obtain a separate quotation if you include these options.')
         if idx == 1:
             st.markdown('#### Energy and financial savings simulator')
             st.caption('Compare existing lighting with a proposed efficient LED and dimming system. Editable assumptions, not guaranteed results.')
@@ -112,6 +123,8 @@ for idx, sol in enumerate(SOLUTIONS):
             st.caption('Dimming is only appropriate if required lighting levels and safety are maintained. Check local rules and perform a site-specific lighting study.')
         selected[idx] = chosen
         quantities[idx] = qty
+        sol.setdefault('editable_costs', {})['low'] = unit_low
+        sol['editable_costs']['high'] = unit_high
 
 st.header('4. Improvement scenario')
 st.caption('Choose a hypothetical score after implementation for each selected solution. Gains are not guaranteed and must be validated after works.')
@@ -123,15 +136,15 @@ for idx, sol in enumerate(SOLUTIONS):
         old_score = int(new_frame.loc[mask,'Score'].iloc[0])
         target = st.slider(f'Expected score after: {sol["name"]}', min_value=old_score, max_value=4, value=min(4,old_score+1), key=f'target_{idx}')
         new_frame.loc[mask,'Score'] = target
-        low_total += sol['low']*quantities[idx]
-        high_total += sol['high']*quantities[idx]
+        low_total += sol['editable_costs']['low']*quantities[idx]
+        high_total += sol['editable_costs']['high']*quantities[idx]
 new_theme_scores = {theme: new_frame.loc[new_frame['Theme']==theme,'Score'].mean()/4*100 for theme in THEMES}
 new_overall = sum(new_theme_scores[t]*weights[t] for t in THEMES)/weight_total
 x,y,z = st.columns(3)
 x.metric('Current score', f'{overall:.1f}/100')
 y.metric('Scenario score', f'{new_overall:.1f}/100', delta=f'{new_overall-overall:+.1f} points')
 z.metric('Estimated budget', f'€{low_total:,.0f} - €{high_total:,.0f}')
-st.caption('All budgets are illustrative and require site-specific verification. Design studies, permits, taxes and unforeseen works may not be included.')
+st.caption('Cost benchmarks are drawn from French published references but do not constitute actual project quotations. Different scopes may not be directly comparable. Studies, permits, VAT, smart sensors, remote controls and unforeseen works may be excluded.')
 
 def build_word_report():
     """Create a complete editable Word summary of the current assessment."""
@@ -144,7 +157,7 @@ def build_word_report():
     doc.add_heading('1. Executive summary', level=1)
     doc.add_paragraph(f'Current overall score: {overall:.1f}/100')
     doc.add_paragraph(f'Projected scenario score: {new_overall:.1f}/100 (change: {new_overall-overall:+.1f} points)')
-    doc.add_paragraph(f'Illustrative total implementation budget: EUR {low_total:,.0f} to EUR {high_total:,.0f}.')
+    doc.add_paragraph(f'Benchmark-based total implementation budget: EUR {low_total:,.0f} to EUR {high_total:,.0f}.')
     doc.add_paragraph('Method: Each sub-theme is scored from 0 (not addressed) to 4 (exemplary). The three sub-theme scores within a theme are averaged and converted to 100. Theme scores are combined using the user-selected weights, normalized to 100%.')
     doc.add_heading('2. Themes and sub-theme assessment', level=1)
     for theme, cfg in THEMES.items():
@@ -167,7 +180,7 @@ def build_word_report():
         doc.add_paragraph(f'Monitoring indicators: {sol["measure"]}')
         doc.add_paragraph(f'Feasibility: {sol["difficulty"]}; {sol["timeline"]}.')
         qty = quantities[idx]
-        doc.add_paragraph(f'Quantity: {qty} {sol["unit"]}(s). Illustrative budget: EUR {sol["low"]*qty:,.0f} to EUR {sol["high"]*qty:,.0f}.')
+        doc.add_paragraph(f'Quantity: {qty} {sol["unit"]}(s). Benchmark-based budget: EUR {sol["editable_costs"]["low"]*qty:,.0f} to EUR {sol["editable_costs"]["high"]*qty:,.0f}.')
         doc.add_paragraph(f'Included in improvement scenario: {"Yes" if selected[idx] else "No"}.')
         if idx == 1:
             doc.add_heading('Energy and financial assessment', level=3)
@@ -175,13 +188,18 @@ def build_word_report():
             doc.add_paragraph(f'Current consumption: {baseline_kwh:,.0f} kWh/year; proposed: {proposed_kwh:,.0f} kWh/year; difference: {saved_kwh:,.0f} kWh/year ({energy_saving_pct:.1f}%).')
             doc.add_paragraph(f'Current electricity cost: EUR {baseline_kwh*tariff:,.0f}/year; proposed: EUR {proposed_kwh*tariff:,.0f}/year. Electricity savings: EUR {annual_electric_savings:,.0f}/year. Optional maintenance savings: EUR {extra_maintenance:,.0f}/year.')
             if annual_total_savings > 0:
-                doc.add_paragraph(f'Illustrative simple payback: {sol["low"]*qty/annual_total_savings:.1f} to {sol["high"]*qty/annual_total_savings:.1f} years (full installation cost basis).')
+                doc.add_paragraph(f'Illustrative simple payback: {sol["editable_costs"]["low"]*qty/annual_total_savings:.1f} to {sol["editable_costs"]["high"]*qty/annual_total_savings:.1f} years (full installation cost basis).')
             else:
                 doc.add_paragraph('Under the selected assumptions, there are no positive annual savings.')
     doc.add_heading('5. Results and limitations', level=1)
     doc.add_paragraph(f'Current score: {overall:.1f}/100. Projected score: {new_overall:.1f}/100. Estimated change: {new_overall-overall:+.1f} points.')
-    doc.add_paragraph('Scores, weights, unit costs, projected gains and energy assumptions are illustrative, not official Nexity standards, supplier quotes or verified outcomes. Actual costs and benefits require a site survey, technical design and follow-up measurements. Energy-efficient dimming must preserve required visibility and safety.')
+    doc.add_paragraph('Scores, weights, projected gains and energy assumptions are illustrative. Unit-cost defaults come from published French references and are not supplier quotations or guaranteed project prices. Smart lighting controls and sensors are not included in the LED unit-price defaults. Actual costs and benefits require a site survey, technical design and follow-up measurements. Energy-efficient dimming must preserve required visibility and safety.')
     doc.add_paragraph('The two solutions target pedestrian crossings and dark pedestrian areas. Other low-scoring sub-themes are assessed but do not receive additional solution proposals.')
+    doc.add_heading('6. Cost references and scope', level=1)
+    doc.add_paragraph('Raised pedestrian crossing / plateau traversant: EUR 10,000 to 30,000 per unit (2025 benchmark). Source: Plateforme des coûts, https://reseau-velo-marche.org/plateforme-des-couts/amenagements/dispositifs-de-moderation-de-trafic/')
+    doc.add_paragraph('Simple LED renovation: approximately EUR 500 per luminaire. Source: Cerema, https://www.cerema.fr/fr/actualites/eclairage-public-poste-cle-reduire-consommations-energie')
+    doc.add_paragraph('Broader light-point renovation: approximately EUR 1,000 excl. VAT per light point. Source: Inspection générale des finances, report annexes, https://www.lagazettedescommunes.com/telechargements/2024/04/rapport-igf-sur-les-investissementsdescollectivitesterritoriales-gdc-annexes3-3.pdf')
+    doc.add_paragraph('The EUR 500 and EUR 1,000 lighting figures describe different scopes. They do not price smart sensors, remote management, or all site-specific works. Energy savings are calculated from user-editable assumptions and are not verified savings.')
     for style in ['Normal']:
         doc.styles[style].font.size = Pt(10)
     out = BytesIO()

@@ -20,4 +20,4 @@ streamlit run streamlit_app.py
 
 Upload all four files to the root of a GitHub repository and deploy using `render.yaml`.
 
-All monetary figures and projected gains are illustrative, not quotes or verified outcomes.
+Cost defaults are grounded in published French benchmarks (links in the app and exported Word report); they are not site-specific quotations. LED figures cover different renovation scopes and exclude smart sensors/remote management. Scores and energy savings are illustrative simulations.
