@@ -21,3 +21,6 @@ streamlit run streamlit_app.py
 Upload all four files to the root of a GitHub repository and deploy using `render.yaml`.
 
 Cost defaults are grounded in published French benchmarks (links in the app and exported Word report); they are not site-specific quotations. LED figures cover different renovation scopes and exclude smart sensors/remote management. Scores and energy savings are illustrative simulations.
+
+## Video demonstration
+Select Video upload (simulated AI), upload an MP4 (recommended), MOV or AVI, preview it and click Run AI analysis simulation. Video mode uses explicitly fictional indicators, not video inference. Browser playback depends on codec. CSV mode remains available for real pre-extracted indicators. No calibrated sound levels are inferred from video audio.
